@@ -1,0 +1,742 @@
+﻿<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="App Launcher"
+    Width="1120"
+    Height="720"
+    Background="{DynamicResource BackgroundBrush}"
+    FontFamily="Segoe UI"
+    WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Color x:Key="PrimaryColor">#FF6750A4</Color>
+        <Color x:Key="OnPrimaryColor">#FFFFFFFF</Color>
+        <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
+        <Color x:Key="OnSurfaceColor">#FF1C1B1F</Color>
+        <Color x:Key="OutlineColor">#FF79747E</Color>
+        <Color x:Key="SubtleTextColor">#FF5A5661</Color>
+        <Color x:Key="DividerColor">#FFE7E0EC</Color>
+
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#FFF7F2FA" />
+
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <SolidColorBrush x:Key="OnPrimaryBrush" Color="{StaticResource OnPrimaryColor}" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+        <SolidColorBrush x:Key="OnSurfaceBrush" Color="{StaticResource OnSurfaceColor}" />
+        <SolidColorBrush x:Key="OutlineBrush" Color="{StaticResource OutlineColor}" />
+        <SolidColorBrush x:Key="SubtleTextBrush" Color="{StaticResource SubtleTextColor}" />
+        <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}" />
+
+        <SolidColorBrush x:Key="DropBgBrush" Color="#FFF3EEF8" />
+        <SolidColorBrush x:Key="DropHoverBrush" Color="#FFE9E2F3" />
+        <SolidColorBrush x:Key="DropSelectedBrush" Color="#FFE3D9EF" />
+        <SolidColorBrush x:Key="DropSeparatorBrush" Color="#1A000000" />
+
+        <DropShadowEffect
+            x:Key="Elevation1"
+            BlurRadius="18"
+            Opacity="0.22"
+            ShadowDepth="2" />
+
+        <Style x:Key="TitleLargeTextBlock" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource OnSurfaceBrush}" />
+        </Style>
+
+        <Style x:Key="BodySmallTextBlock" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+        </Style>
+
+        <Style x:Key="MdFilledButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource OnPrimaryBrush}" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.92" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MdGhostButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinWidth" Value="84" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A6750A4" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#266750A4" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style
+            x:Key="SearchClearButtonStyle"
+            BasedOn="{StaticResource LinkButton}"
+            TargetType="Button">
+            <Setter Property="Visibility" Value="Visible" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Text, ElementName=applicationSearchTextBox}" Value="">
+                    <Setter Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Effect" Value="{StaticResource Elevation1}" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="Transparent" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="Transparent" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ApplicationListBoxStyle" TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        </Style>
+
+        <Style x:Key="MdComboBoxItemWithCheck" TargetType="ComboBoxItem">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border
+                            x:Name="Bd"
+                            Margin="2,2"
+                            Background="Transparent"
+                            CornerRadius="4"
+                            SnapsToDevicePixels="True">
+                            <Grid>
+                                <ContentPresenter VerticalAlignment="Center" />
+                                <Border
+                                    Height="1"
+                                    VerticalAlignment="Bottom"
+                                    Background="{StaticResource DropSeparatorBrush}"
+                                    Opacity="0.08" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource DropHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource DropSelectedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MdComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource OutlineBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource OnSurfaceBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource MdComboBoxItemWithCheck}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border
+                                x:Name="LblBg"
+                                Margin="12,0,0,0"
+                                Padding="6,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Panel.ZIndex="10"
+                                Background="{StaticResource SurfaceBrush}"
+                                CornerRadius="6">
+                                <TextBlock
+                                    x:Name="Lbl"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="{StaticResource SubtleTextBrush}"
+                                    Text="{TemplateBinding Tag}" />
+                            </Border>
+
+                            <ToggleButton
+                                x:Name="ToggleButton"
+                                ClickMode="Press"
+                                Focusable="False"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                OverridesDefaultStyle="True">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border
+                                            x:Name="Bd"
+                                            Margin="0,10,0,0"
+                                            Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                            BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                            BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                            CornerRadius="4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="40" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <ContentPresenter
+                                                    Grid.Column="0"
+                                                    Margin="12,0,10,0"
+                                                    VerticalAlignment="Center"
+                                                    Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+
+                                                <Grid
+                                                    Grid.Column="1"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <Path
+                                                        Data="M 0 0 L 5 5 L 10 0"
+                                                        Stroke="{StaticResource OutlineBrush}"
+                                                        StrokeThickness="2" />
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.5" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <Popup
+                                x:Name="PART_Popup"
+                                AllowsTransparency="True"
+                                Focusable="False"
+                                IsOpen="{TemplateBinding IsDropDownOpen}"
+                                Placement="Bottom"
+                                PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                PopupAnimation="Slide">
+                                <Border
+                                    Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Padding="6"
+                                    Background="{StaticResource DropBgBrush}"
+                                    BorderThickness="0"
+                                    ClipToBounds="True"
+                                    CornerRadius="4">
+                                    <Border.Effect>
+                                        <DropShadowEffect
+                                            BlurRadius="22"
+                                            Opacity="0.28"
+                                            ShadowDepth="8" />
+                                    </Border.Effect>
+
+                                    <ScrollViewer
+                                        MaxHeight="360"
+                                        Background="{StaticResource DropBgBrush}"
+                                        CanContentScroll="True"
+                                        VerticalScrollBarVisibility="Auto">
+                                        <Border
+                                            Background="{StaticResource DropBgBrush}"
+                                            ClipToBounds="True"
+                                            CornerRadius="4">
+                                            <ItemsPresenter />
+                                        </Border>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Tag" Value="{x:Null}">
+                                <Setter TargetName="LblBg" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="">
+                                <Setter TargetName="LblBg" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SearchInnerTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource OnSurfaceBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="SearchPlaceholderText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Text, ElementName=applicationSearchTextBox}" Value="">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AppCardBorderStyle" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+
+        <Style x:Key="AppIconHolderBorderStyle" TargetType="Border">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="14" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border
+            Grid.Row="0"
+            Padding="16"
+            Background="{StaticResource SurfaceBrush}"
+            CornerRadius="18"
+            Effect="{StaticResource Elevation1}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource TitleLargeTextBlock}" Text="App Launcher" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        Style="{StaticResource BodySmallTextBlock}"
+                        Text="スキル別に起動アプリを管理し、一括起動できます" />
+                </StackPanel>
+
+                <ComboBox
+                    x:Name="skillComboBox"
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    DisplayMemberPath="Name"
+                    SelectedValuePath="Id"
+                    Style="{StaticResource MdComboBox}"
+                    Tag="スキル" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            x:Name="applicationCountTextBlock"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource BodySmallTextBlock}" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="2"
+                        MinHeight="44"
+                        Background="{StaticResource DropBgBrush}"
+                        CornerRadius="22">
+                        <Grid Margin="14,0,12,0" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Image
+                                Grid.Column="0"
+                                Width="18"
+                                Height="18"
+                                VerticalAlignment="Center"
+                                Source="{Binding SearchIconSource}"
+                                Stretch="Uniform" />
+
+                            <Grid Grid.Column="2" VerticalAlignment="Center">
+                                <TextBox x:Name="applicationSearchTextBox" Style="{StaticResource SearchInnerTextBox}" />
+                                <TextBlock Style="{StaticResource SearchPlaceholderText}" Text="アプリ検索" />
+                            </Grid>
+
+                            <Button
+                                x:Name="clearSearchButton"
+                                Grid.Column="4"
+                                Width="32"
+                                Height="32"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource SearchClearButtonStyle}">
+                                <Image
+                                    Width="18"
+                                    Height="18"
+                                    VerticalAlignment="Center"
+                                    Source="{Binding CloseIconSource}"
+                                    Stretch="Uniform" />
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <ListBox
+                        x:Name="applicationListBox"
+                        Grid.Row="4"
+                        Style="{StaticResource ApplicationListBoxStyle}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource AppCardBorderStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" MinWidth="0" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Style="{StaticResource AppIconHolderBorderStyle}">
+                                            <Image
+                                                Margin="7"
+                                                Source="{Binding IconImageSource}"
+                                                Stretch="Uniform" />
+                                        </Border>
+
+                                        <Grid Grid.Column="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Button
+                                                x:Name="openFromAllApplicationsNameButton"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource LinkButton}"
+                                                Tag="{Binding}">
+                                                <Grid VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="2" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="18"
+                                                        LineStackingStrategy="BlockLineHeight"
+                                                        Text="{Binding Name}"
+                                                        TextTrimming="CharacterEllipsis" />
+
+                                                    <Image
+                                                        Grid.Column="2"
+                                                        Width="14"
+                                                        Height="14"
+                                                        VerticalAlignment="Center"
+                                                        SnapsToDevicePixels="True"
+                                                        Source="{Binding OpenInNewIconSource}"
+                                                        Stretch="Uniform" />
+                                                </Grid>
+                                            </Button>
+
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Margin="0,2,0,0"
+                                                Style="{StaticResource BodySmallTextBlock}"
+                                                Text="{Binding Path}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap" />
+                                        </Grid>
+
+                                        <Button
+                                            x:Name="addToSkillButton"
+                                            Grid.Column="4"
+                                            MinWidth="96"
+                                            Content="追加"
+                                            IsEnabled="{Binding CanAddToSelectedSkill}"
+                                            Style="{StaticResource MdFilledButton}"
+                                            Tag="{Binding}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="{StaticResource OnSurfaceBrush}"
+                            Text="起動するアプリ" />
+                        <TextBlock
+                            x:Name="skillApplicationCountTextBlock"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource BodySmallTextBlock}" />
+                    </Grid>
+
+                    <ListBox
+                        x:Name="skillApplicationListBox"
+                        Grid.Row="2"
+                        Style="{StaticResource ApplicationListBoxStyle}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource AppCardBorderStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" MinWidth="0" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Style="{StaticResource AppIconHolderBorderStyle}">
+                                            <Image
+                                                Margin="7"
+                                                Source="{Binding IconImageSource}"
+                                                Stretch="Uniform" />
+                                        </Border>
+
+                                        <Grid Grid.Column="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Button
+                                                x:Name="openFromSkillApplicationsNameButton"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource LinkButton}"
+                                                Tag="{Binding}">
+                                                <Grid VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="2" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="18"
+                                                        LineStackingStrategy="BlockLineHeight"
+                                                        Text="{Binding Name}"
+                                                        TextTrimming="CharacterEllipsis" />
+
+                                                    <Image
+                                                        Grid.Column="2"
+                                                        Width="14"
+                                                        Height="14"
+                                                        VerticalAlignment="Center"
+                                                        SnapsToDevicePixels="True"
+                                                        Source="{Binding OpenInNewIconSource}"
+                                                        Stretch="Uniform" />
+                                                </Grid>
+                                            </Button>
+
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Margin="0,2,0,0"
+                                                Style="{StaticResource BodySmallTextBlock}"
+                                                Text="{Binding Path}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap" />
+                                        </Grid>
+
+                                        <Button
+                                            x:Name="unlinkFromSkillButton"
+                                            Grid.Column="4"
+                                            Content="解除"
+                                            Style="{StaticResource MdGhostButton}"
+                                            Tag="{Binding}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                x:Name="bulkLaunchButton"
+                Grid.Column="1"
+                MinWidth="180"
+                Padding="20,14"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Content="起動"
+                Style="{StaticResource MdFilledButton}" />
+        </Grid>
+    </Grid>
+</Window>

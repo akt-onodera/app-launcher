@@ -1,0 +1,19 @@
+﻿{
+  "Skills": [
+    {
+      "Id": "general",
+      "Name": "General",
+      "ToolIds": ["gmail", "notepad"]
+    },
+    {
+      "Id": "dev",
+      "Name": "Dev",
+      "ToolIds": ["gmail", "calc"]
+    },
+    {
+      "Id": "support",
+      "Name": "Support",
+      "ToolIds": ["gmail"]
+    }
+  ]
+}

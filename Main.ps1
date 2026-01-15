@@ -4,9 +4,6 @@ $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
-# -----------------------------
-# Paths
-# -----------------------------
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $mainWindowXamlFilePath = Join-Path $root "MainWindow.xaml"
@@ -26,9 +23,6 @@ foreach ($p in @($mainWindowXamlFilePath, $toolsConfigurationFilePath, $skillsCo
 }
 if (!(Test-Path -LiteralPath $imgDirectoryPath)) { throw "img フォルダが見つかりません: $imgDirectoryPath" }
 
-# -----------------------------
-# Utils (minimum)
-# -----------------------------
 function Show-Message {
     param([Parameter(Mandatory = $true)][string]$Message, [string]$Title = "Launcher")
     [System.Windows.MessageBox]::Show($Message, $Title, 'OK', 'Information') | Out-Null
@@ -101,9 +95,6 @@ function Find-ParentButton {
     $null
 }
 
-# -----------------------------
-# Icons
-# -----------------------------
 $openInNewIconUri = FileUriOrEmpty $openInNewIconFilePath
 $searchIconUri = FileUriOrEmpty $searchIconFilePath
 $closeIconUri = FileUriOrEmpty $closeIconFilePath
@@ -122,9 +113,6 @@ function Resolve-IconUriForTool {
     FileUriOrEmpty $defaultIconFilePath
 }
 
-# -----------------------------
-# Load config
-# -----------------------------
 $toolsConfiguration = Read-JsonFile -FilePath $toolsConfigurationFilePath
 $skillsConfiguration = Read-JsonFile -FilePath $skillsConfigurationFilePath
 if ($null -eq $toolsConfiguration -or $null -eq $skillsConfiguration) {
@@ -137,7 +125,6 @@ foreach ($t in @($toolsConfiguration.Tools)) {
     if (![string]::IsNullOrWhiteSpace($id)) { $toolDefById[$id] = $t }
 }
 
-# skills.json の ToolIds を「初期状態」として保持（不変）
 $baseSkillToolIdsById = @{}
 foreach ($s in @($skillsConfiguration.Skills)) {
     $sid = Get-PropString $s "Id" ""
@@ -148,12 +135,10 @@ foreach ($s in @($skillsConfiguration.Skills)) {
     $baseSkillToolIdsById[$sid] = @($toolIds)
 }
 
-# セッション中の変更（=追加/解除）を保持するが、スキル切替で毎回リセットする
 $sessionSkillToolIdsById = @{}
 function Reset-SessionSkillToolIds {
     $script:sessionSkillToolIdsById = @{}
     foreach ($k in $baseSkillToolIdsById.Keys) {
-        # 配列をコピー（参照共有しない）
         $script:sessionSkillToolIdsById[$k] = @($baseSkillToolIdsById[$k])
     }
 }
@@ -180,9 +165,6 @@ function Set-ToolIdsForSkill {
     $sessionSkillToolIdsById[$SkillId] = @($list.ToArray())
 }
 
-# -----------------------------
-# Launch
-# -----------------------------
 function Start-Tool {
     param([Parameter(Mandatory = $true)]$ToolVm)
 
@@ -222,9 +204,6 @@ function New-ToolViewModel {
     }
 }
 
-# -----------------------------
-# Load UI
-# -----------------------------
 $xaml = Get-Content -LiteralPath $mainWindowXamlFilePath -Raw -Encoding UTF8
 $sr = New-Object System.IO.StringReader($xaml)
 $xr = [System.Xml.XmlReader]::Create($sr)
@@ -354,19 +333,13 @@ function Remove-ToolIdFromSkill {
     Set-ToolIdsForSkill -SkillId $SkillId -ToolIds $next
 }
 
-# 初期描画
 Refresh-SkillViewModels
 Select-InitialSkill
 Refresh-SkillApplicationViewModels
 Refresh-ApplicationViewModels
 
-# -----------------------------
-# Events
-# -----------------------------
 $skillComboBox.Add_SelectionChanged({
-        # ★ここが要点：スキルを切り替えたら、前回の追加/解除を破棄して初期状態に戻す
         Reset-SessionSkillToolIds
-
         Refresh-SkillApplicationViewModels
         Refresh-ApplicationViewModels
     })

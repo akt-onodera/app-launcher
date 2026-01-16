@@ -4,28 +4,19 @@
       "Id": "gmail",
       "Name": "Gmail",
       "Path": "https://mail.google.com/",
-      "Args": "",
-      "WorkingDirectory": "",
-      "RunAsAdmin": false,
-      "IconPath": "icons\\chrome.png"
+      "IconPath": "img\\chrome.png"
     },
     {
       "Id": "notepad",
       "Name": "メモ帳",
       "Path": "notepad.exe",
-      "Args": "",
-      "WorkingDirectory": "",
-      "RunAsAdmin": false,
-      "IconPath": "icons\\notepad.png"
+      "IconPath": "img\\notepad.png"
     },
     {
       "Id": "calc",
       "Name": "電卓",
       "Path": "calc.exe",
-      "Args": "",
-      "WorkingDirectory": "",
-      "RunAsAdmin": false,
-      "IconPath": "icons\\calc.png"
+      "IconPath": "img\\calc.png"
     }
   ]
 }

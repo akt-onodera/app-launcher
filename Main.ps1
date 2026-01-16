@@ -11,28 +11,21 @@ $toolsConfigurationFilePath = Join-Path $applicationRootDirectory "tools.json"
 $skillsConfigurationFilePath = Join-Path $applicationRootDirectory "skills.json"
 
 $imgDirectoryPath = Join-Path $applicationRootDirectory "img"
-$defaultIconRelativePath = "img\apps.png"
-$defaultIconFilePath = Join-Path $applicationRootDirectory $defaultIconRelativePath
+$openInNewIconFilePath = Join-Path $imgDirectoryPath "open_in_new.png"
+$searchIconFilePath = Join-Path $imgDirectoryPath "search.png"
+$closeIconFilePath = Join-Path $imgDirectoryPath "close.png"
 
-$openInNewIconFilePath = Join-Path $applicationRootDirectory "img\open_in_new.png"
-$searchIconFilePath = Join-Path $applicationRootDirectory "img\search.png"
-$closeIconFilePath = Join-Path $applicationRootDirectory "img\close.png"
-
-foreach ($requiredFilePath in @($mainWindowXamlFilePath, $toolsConfigurationFilePath, $skillsConfigurationFilePath)) {
+foreach ($requiredFilePath in @(
+        $mainWindowXamlFilePath,
+        $toolsConfigurationFilePath,
+        $skillsConfigurationFilePath,
+        $openInNewIconFilePath,
+        $searchIconFilePath,
+        $closeIconFilePath
+    )) {
     if (!(Test-Path -LiteralPath $requiredFilePath)) {
         throw "必須ファイルが見つかりません: $requiredFilePath"
     }
-}
-if (!(Test-Path -LiteralPath $imgDirectoryPath)) {
-    throw "img フォルダが見つかりません: $imgDirectoryPath"
-}
-
-function Show-Message {
-    param(
-        [Parameter(Mandatory = $true)][string]$Message,
-        [string]$Title = "Launcher"
-    )
-    [System.Windows.MessageBox]::Show($Message, $Title, 'OK', 'Information') | Out-Null
 }
 
 function Read-JsonFile {
@@ -67,28 +60,28 @@ function Get-PropertyBoolean {
     [bool]$property.Value
 }
 
-function Convert-ToStringArray {
-    param($Value)
+function Get-PropertyStringArray {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string]$PropertyName
+    )
 
-    if ($null -eq $Value) { return @() }
+    if ($null -eq $Object) { return @() }
+    $property = $Object.PSObject.Properties[$PropertyName]
+    if ($null -eq $property -or $null -eq $property.Value) { return @() }
 
-    if ($Value -is [string]) {
-        if ([string]::IsNullOrWhiteSpace($Value)) { return @() }
-        return @([string]$Value)
+    $value = $property.Value
+    if ($value -is [string]) {
+        if ([string]::IsNullOrWhiteSpace($value)) { return @() }
+        return @([string]$value)
     }
 
-    if ($Value -is [System.Collections.IEnumerable]) {
-        $resultList = @()
-        foreach ($item in $Value) {
-            $text = [string]$item
-            if (![string]::IsNullOrWhiteSpace($text)) { $resultList += $text }
-        }
-        return @($resultList)
+    $resultList = @()
+    foreach ($item in @($value)) {
+        $text = [string]$item
+        if (![string]::IsNullOrWhiteSpace($text)) { $resultList += $text }
     }
-
-    $text = [string]$Value
-    if ([string]::IsNullOrWhiteSpace($text)) { return @() }
-    @($text)
+    @($resultList)
 }
 
 function Resolve-EnvironmentVariables {
@@ -97,9 +90,9 @@ function Resolve-EnvironmentVariables {
     [Environment]::ExpandEnvironmentVariables($Value)
 }
 
-function Convert-ToFileUriOrEmpty {
+function Convert-ToFileUri {
     param([Parameter(Mandatory = $true)][string]$FilePath)
-    if (!(Test-Path -LiteralPath $FilePath)) { return "" }
+
     ([System.Uri]::new((Resolve-Path -LiteralPath $FilePath).Path)).AbsoluteUri
 }
 
@@ -115,24 +108,19 @@ function Find-ParentButton {
     $null
 }
 
-$openInNewIconUri = Convert-ToFileUriOrEmpty -FilePath $openInNewIconFilePath
-$searchIconUri = Convert-ToFileUriOrEmpty -FilePath $searchIconFilePath
-$closeIconUri = Convert-ToFileUriOrEmpty -FilePath $closeIconFilePath
-
 function Resolve-IconUriForTool {
     param([Parameter(Mandatory = $true)]$ToolDefinition)
 
     $iconPathValue = Get-PropertyString -Object $ToolDefinition -PropertyName "IconPath" -DefaultValue ""
-    if (![string]::IsNullOrWhiteSpace($iconPathValue)) {
-        $resolvedIconFilePath = $iconPathValue
-        if (![System.IO.Path]::IsPathRooted($resolvedIconFilePath)) {
-            $resolvedIconFilePath = Join-Path $applicationRootDirectory $resolvedIconFilePath
-        }
-        $iconUri = Convert-ToFileUriOrEmpty -FilePath $resolvedIconFilePath
-        if (![string]::IsNullOrWhiteSpace($iconUri)) { return $iconUri }
+    if ([string]::IsNullOrWhiteSpace($iconPathValue)) { return "" }
+
+    $resolvedIconFilePath = $iconPathValue
+    if (![System.IO.Path]::IsPathRooted($resolvedIconFilePath)) {
+        $resolvedIconFilePath = Join-Path $applicationRootDirectory $resolvedIconFilePath
     }
 
-    Convert-ToFileUriOrEmpty -FilePath $defaultIconFilePath
+    if (!(Test-Path -LiteralPath $resolvedIconFilePath)) { return "" }
+    Convert-ToFileUri -FilePath $resolvedIconFilePath
 }
 
 $toolsConfiguration = Read-JsonFile -FilePath $toolsConfigurationFilePath
@@ -147,52 +135,20 @@ foreach ($toolDefinition in @($toolsConfiguration.Tools)) {
     if (![string]::IsNullOrWhiteSpace($toolId)) { $toolDefinitionById[$toolId] = $toolDefinition }
 }
 
-$baseSkillToolIdsById = @{}
-foreach ($skillDefinition in @($skillsConfiguration.Skills)) {
-    $skillId = Get-PropertyString -Object $skillDefinition -PropertyName "Id" -DefaultValue ""
-    if ([string]::IsNullOrWhiteSpace($skillId)) { continue }
-
-    $toolIdsProperty = $skillDefinition.PSObject.Properties["ToolIds"]
-    $toolIds = @()
-    if ($null -ne $toolIdsProperty) { $toolIds = Convert-ToStringArray -Value $toolIdsProperty.Value }
-
-    $baseSkillToolIdsById[$skillId] = @($toolIds)
-}
-
-$sessionSkillToolIdsById = @{}
-function Reset-SessionSkillToolIds {
-    $script:sessionSkillToolIdsById = @{}
-    foreach ($skillId in $baseSkillToolIdsById.Keys) {
-        $script:sessionSkillToolIdsById[$skillId] = @($baseSkillToolIdsById[$skillId])
-    }
-}
-Reset-SessionSkillToolIds
-
-function Get-EffectiveToolIdsForSkill {
+function Get-BaseToolIdsForSkill {
     param([Parameter(Mandatory = $true)][string]$SkillId)
-    if ($sessionSkillToolIdsById.ContainsKey($SkillId)) { return @($sessionSkillToolIdsById[$SkillId]) }
+
+    foreach ($skillDefinition in @($skillsConfiguration.Skills)) {
+        $id = Get-PropertyString -Object $skillDefinition -PropertyName "Id" -DefaultValue ""
+        if ($id -ne $SkillId) { continue }
+        return @(Get-PropertyStringArray -Object $skillDefinition -PropertyName "ToolIds")
+    }
     @()
 }
 
-function Set-ToolIdsForSkill {
-    param(
-        [Parameter(Mandatory = $true)][string]$SkillId,
-        [Parameter(Mandatory = $true)][string[]]$ToolIds
-    )
-
-    $uniqueToolIdSet = @{}
-    $normalizedToolIds = New-Object System.Collections.Generic.List[string]
-
-    foreach ($toolId in $ToolIds) {
-        $text = [string]$toolId
-        if ([string]::IsNullOrWhiteSpace($text)) { continue }
-        if ($uniqueToolIdSet.ContainsKey($text)) { continue }
-        $uniqueToolIdSet[$text] = $true
-        $null = $normalizedToolIds.Add($text)
-    }
-
-    $sessionSkillToolIdsById[$SkillId] = @($normalizedToolIds.ToArray())
-}
+$openInNewIconUri = Convert-ToFileUri -FilePath $openInNewIconFilePath
+$searchIconUri = Convert-ToFileUri -FilePath $searchIconFilePath
+$closeIconUri = Convert-ToFileUri -FilePath $closeIconFilePath
 
 function Start-Tool {
     param([Parameter(Mandatory = $true)]$ToolViewModel)
@@ -202,19 +158,17 @@ function Start-Tool {
     $workingDirectoryValue = Resolve-EnvironmentVariables -Value (Get-PropertyString -Object $ToolViewModel -PropertyName "WorkingDirectory" -DefaultValue "")
     $runAsAdministrator = Get-PropertyBoolean -Object $ToolViewModel -PropertyName "RunAsAdmin" -DefaultValue $false
 
-    try {
-        if ($pathValue -match '^(https?://)') { Start-Process $pathValue; return }
-
-        $startProcessParameters = @{ FilePath = $pathValue }
-        if (![string]::IsNullOrWhiteSpace($argumentsValue)) { $startProcessParameters.ArgumentList = $argumentsValue }
-        if (![string]::IsNullOrWhiteSpace($workingDirectoryValue)) { $startProcessParameters.WorkingDirectory = $workingDirectoryValue }
-
-        if ($runAsAdministrator) { Start-Process @startProcessParameters -Verb RunAs }
-        else { Start-Process @startProcessParameters }
+    if ($pathValue -match '^(https?://)') {
+        Start-Process $pathValue
+        return
     }
-    catch {
-        Show-Message -Message ("起動に失敗しました:`n{0}" -f $_.Exception.Message)
-    }
+
+    $startProcessParameters = @{ FilePath = $pathValue }
+    if (![string]::IsNullOrWhiteSpace($argumentsValue)) { $startProcessParameters.ArgumentList = $argumentsValue }
+    if (![string]::IsNullOrWhiteSpace($workingDirectoryValue)) { $startProcessParameters.WorkingDirectory = $workingDirectoryValue }
+
+    if ($runAsAdministrator) { Start-Process @startProcessParameters -Verb RunAs }
+    else { Start-Process @startProcessParameters }
 }
 
 function New-ToolViewModel {
@@ -249,10 +203,8 @@ $mainWindow.DataContext = [pscustomobject]@{
 $skillComboBox = $mainWindow.FindName("skillComboBox")
 $applicationSearchTextBox = $mainWindow.FindName("applicationSearchTextBox")
 $clearSearchButton = $mainWindow.FindName("clearSearchButton")
-
 $applicationListBox = $mainWindow.FindName("applicationListBox")
 $skillApplicationListBox = $mainWindow.FindName("skillApplicationListBox")
-
 $applicationCountTextBlock = $mainWindow.FindName("applicationCountTextBlock")
 $skillApplicationCountTextBlock = $mainWindow.FindName("skillApplicationCountTextBlock")
 $bulkLaunchButton = $mainWindow.FindName("bulkLaunchButton")
@@ -264,6 +216,8 @@ $skillApplicationViewModels = New-Object 'System.Collections.ObjectModel.Observa
 $skillComboBox.ItemsSource = $skillViewModels
 $applicationListBox.ItemsSource = $applicationViewModels
 $skillApplicationListBox.ItemsSource = $skillApplicationViewModels
+
+$currentSkillToolIds = @()
 
 function Get-SelectedSkillId {
     if ($null -eq $skillComboBox.SelectedValue) { return "" }
@@ -282,12 +236,18 @@ function Refresh-SkillViewModels {
     }
 }
 
-function Get-ToolIdSetForSelectedSkill {
+function Reset-CurrentSkillToolIds {
     $selectedSkillId = Get-SelectedSkillId
-    if ([string]::IsNullOrWhiteSpace($selectedSkillId)) { return @{} }
+    if ([string]::IsNullOrWhiteSpace($selectedSkillId)) {
+        $script:currentSkillToolIds = @()
+        return
+    }
+    $script:currentSkillToolIds = @(Get-BaseToolIdsForSkill -SkillId $selectedSkillId)
+}
 
+function Get-ToolIdSetForCurrentSkill {
     $toolIdSet = @{}
-    foreach ($toolId in @(Get-EffectiveToolIdsForSkill -SkillId $selectedSkillId)) {
+    foreach ($toolId in @($currentSkillToolIds)) {
         if (![string]::IsNullOrWhiteSpace($toolId)) { $toolIdSet[$toolId] = $true }
     }
     $toolIdSet
@@ -312,7 +272,7 @@ function Refresh-ApplicationViewModels {
     $applicationViewModels.Clear()
 
     $selectedSkillId = Get-SelectedSkillId
-    $toolIdSet = Get-ToolIdSetForSelectedSkill
+    $toolIdSet = Get-ToolIdSetForCurrentSkill
 
     foreach ($toolDefinition in @(Get-FilteredToolDefinitions)) {
         $toolId = Get-PropertyString -Object $toolDefinition -PropertyName "Id" -DefaultValue ""
@@ -324,7 +284,9 @@ function Refresh-ApplicationViewModels {
         $applicationViewModels.Add((New-ToolViewModel -ToolDefinition $toolDefinition -CanAddToSelectedSkill $canAddToSelectedSkill)) | Out-Null
     }
 
-    $applicationCountTextBlock.Text = ("表示: {0} 件" -f $applicationViewModels.Count)
+    if ($null -ne $applicationCountTextBlock) {
+        $applicationCountTextBlock.Text = ("表示: {0} 件" -f $applicationViewModels.Count)
+    }
 }
 
 function Refresh-SkillApplicationViewModels {
@@ -332,12 +294,12 @@ function Refresh-SkillApplicationViewModels {
 
     $selectedSkillId = Get-SelectedSkillId
     if ([string]::IsNullOrWhiteSpace($selectedSkillId)) {
-        $skillApplicationCountTextBlock.Text = "表示: 0 件"
-        $bulkLaunchButton.IsEnabled = $false
+        if ($null -ne $skillApplicationCountTextBlock) { $skillApplicationCountTextBlock.Text = "表示: 0 件" }
+        if ($null -ne $bulkLaunchButton) { $bulkLaunchButton.IsEnabled = $false }
         return
     }
 
-    foreach ($toolId in @(Get-EffectiveToolIdsForSkill -SkillId $selectedSkillId)) {
+    foreach ($toolId in @($currentSkillToolIds)) {
         if ([string]::IsNullOrWhiteSpace($toolId)) { continue }
         if (!$toolDefinitionById.ContainsKey($toolId)) { continue }
 
@@ -345,48 +307,44 @@ function Refresh-SkillApplicationViewModels {
         $skillApplicationViewModels.Add((New-ToolViewModel -ToolDefinition $toolDefinition -CanAddToSelectedSkill $false)) | Out-Null
     }
 
-    $skillApplicationCountTextBlock.Text = ("表示: {0} 件" -f $skillApplicationViewModels.Count)
-    $bulkLaunchButton.IsEnabled = ($skillApplicationViewModels.Count -gt 0)
+    if ($null -ne $skillApplicationCountTextBlock) {
+        $skillApplicationCountTextBlock.Text = ("表示: {0} 件" -f $skillApplicationViewModels.Count)
+    }
+    if ($null -ne $bulkLaunchButton) {
+        $bulkLaunchButton.IsEnabled = ($skillApplicationViewModels.Count -gt 0)
+    }
 }
 
 function Select-InitialSkill {
     if ($skillViewModels.Count -gt 0) { $skillComboBox.SelectedIndex = 0 }
 }
 
-function Add-ToolIdToSkill {
-    param(
-        [Parameter(Mandatory = $true)][string]$ToolId,
-        [Parameter(Mandatory = $true)][string]$SkillId
-    )
+function Add-ToolIdToCurrentSkill {
+    param([Parameter(Mandatory = $true)][string]$ToolId)
 
-    $currentToolIds = @(Get-EffectiveToolIdsForSkill -SkillId $SkillId)
-    if ($currentToolIds -contains $ToolId) { return }
-
-    Set-ToolIdsForSkill -SkillId $SkillId -ToolIds @($currentToolIds + @($ToolId))
+    if ([string]::IsNullOrWhiteSpace($ToolId)) { return }
+    if ($currentSkillToolIds -contains $ToolId) { return }
+    $script:currentSkillToolIds = @($currentSkillToolIds + @($ToolId))
 }
 
-function Remove-ToolIdFromSkill {
-    param(
-        [Parameter(Mandatory = $true)][string]$ToolId,
-        [Parameter(Mandatory = $true)][string]$SkillId
-    )
+function Remove-ToolIdFromCurrentSkill {
+    param([Parameter(Mandatory = $true)][string]$ToolId)
 
-    $currentToolIds = @(Get-EffectiveToolIdsForSkill -SkillId $SkillId)
-    $updatedToolIds = @()
-    foreach ($existingToolId in $currentToolIds) {
-        if ($existingToolId -ne $ToolId) { $updatedToolIds += $existingToolId }
+    $nextToolIds = @()
+    foreach ($existingToolId in @($currentSkillToolIds)) {
+        if ($existingToolId -ne $ToolId) { $nextToolIds += $existingToolId }
     }
-
-    Set-ToolIdsForSkill -SkillId $SkillId -ToolIds $updatedToolIds
+    $script:currentSkillToolIds = @($nextToolIds)
 }
 
 Refresh-SkillViewModels
 Select-InitialSkill
+Reset-CurrentSkillToolIds
 Refresh-SkillApplicationViewModels
 Refresh-ApplicationViewModels
 
 $skillComboBox.Add_SelectionChanged({
-        Reset-SessionSkillToolIds
+        Reset-CurrentSkillToolIds
         Refresh-SkillApplicationViewModels
         Refresh-ApplicationViewModels
     })
@@ -417,10 +375,7 @@ $applicationListBox.AddHandler(
             $toolViewModel = $clickedButton.Tag
             if ($null -eq $toolViewModel) { return }
 
-            $selectedSkillId = Get-SelectedSkillId
-            if ([string]::IsNullOrWhiteSpace($selectedSkillId)) { return }
-
-            Add-ToolIdToSkill -ToolId ([string]$toolViewModel.Id) -SkillId $selectedSkillId
+            Add-ToolIdToCurrentSkill -ToolId ([string]$toolViewModel.Id)
             Refresh-SkillApplicationViewModels
             Refresh-ApplicationViewModels
             return
@@ -445,10 +400,7 @@ $skillApplicationListBox.AddHandler(
             $toolViewModel = $clickedButton.Tag
             if ($null -eq $toolViewModel) { return }
 
-            $selectedSkillId = Get-SelectedSkillId
-            if ([string]::IsNullOrWhiteSpace($selectedSkillId)) { return }
-
-            Remove-ToolIdFromSkill -ToolId ([string]$toolViewModel.Id) -SkillId $selectedSkillId
+            Remove-ToolIdFromCurrentSkill -ToolId ([string]$toolViewModel.Id)
             Refresh-SkillApplicationViewModels
             Refresh-ApplicationViewModels
             return

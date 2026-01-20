@@ -15,19 +15,6 @@ $openInNewIconFilePath = Join-Path $imgDirectoryPath "open_in_new.png"
 $searchIconFilePath = Join-Path $imgDirectoryPath "search.png"
 $closeIconFilePath = Join-Path $imgDirectoryPath "close.png"
 
-foreach ($requiredFilePath in @(
-        $mainWindowXamlFilePath,
-        $toolsConfigurationFilePath,
-        $skillsConfigurationFilePath,
-        $openInNewIconFilePath,
-        $searchIconFilePath,
-        $closeIconFilePath
-    )) {
-    if (!(Test-Path -LiteralPath $requiredFilePath)) {
-        throw "必須ファイルが見つかりません: $requiredFilePath"
-    }
-}
-
 function Read-JsonFile {
     param([Parameter(Mandatory = $true)][string]$FilePath)
 
@@ -86,13 +73,6 @@ function Get-PropertyStringArray {
     return @($resultList)
 }
 
-function Convert-ToAbsoluteFileUri {
-    param([Parameter(Mandatory = $true)][string]$FilePath)
-
-    $absolutePath = (Resolve-Path -LiteralPath $FilePath).Path
-    return ([System.Uri]::new($absolutePath)).AbsoluteUri
-}
-
 function Find-ParentButton {
     param([Parameter(Mandatory = $true)]$SourceObject)
 
@@ -105,19 +85,23 @@ function Find-ParentButton {
     return $null
 }
 
-function Resolve-IconUriForTool {
+function Resolve-ImagePathForTool {
     param([Parameter(Mandatory = $true)]$ToolDefinition)
 
-    $iconPathValue = Get-PropertyString -Object $ToolDefinition -PropertyName "IconPath" -DefaultValue ""
-    if ([string]::IsNullOrWhiteSpace($iconPathValue)) { return "" }
+    $imagePathValue = Get-PropertyString -Object $ToolDefinition -PropertyName "Image" -DefaultValue ""
+    if ([string]::IsNullOrWhiteSpace($imagePathValue)) { return "" }
 
-    $resolvedIconFilePath = $iconPathValue
-    if (![System.IO.Path]::IsPathRooted($resolvedIconFilePath)) {
-        $resolvedIconFilePath = Join-Path $applicationRootDirectory $resolvedIconFilePath
-    }
+    if ([System.IO.Path]::IsPathRooted($imagePathValue)) { return $imagePathValue }
+    return (Join-Path $applicationRootDirectory $imagePathValue)
+}
 
-    if (!(Test-Path -LiteralPath $resolvedIconFilePath)) { return "" }
-    return (Convert-ToAbsoluteFileUri -FilePath $resolvedIconFilePath)
+function Resolve-ToolPath {
+    param([Parameter(Mandatory = $true)][string]$PathValue)
+
+    if ([string]::IsNullOrWhiteSpace($PathValue)) { return $PathValue }
+    if ($PathValue -match '^(https?://)') { return $PathValue }
+    if ([System.IO.Path]::IsPathRooted($PathValue)) { return $PathValue }
+    return (Join-Path $applicationRootDirectory $PathValue)
 }
 
 $toolsConfiguration = Read-JsonFile -FilePath $toolsConfigurationFilePath
@@ -132,35 +116,76 @@ foreach ($toolDefinition in @($toolsConfiguration.Tools)) {
     if (![string]::IsNullOrWhiteSpace($toolId)) { $toolDefinitionById[$toolId] = $toolDefinition }
 }
 
-$openInNewIconUri = Convert-ToAbsoluteFileUri -FilePath $openInNewIconFilePath
-$searchIconUri = Convert-ToAbsoluteFileUri -FilePath $searchIconFilePath
-$closeIconUri = Convert-ToAbsoluteFileUri -FilePath $closeIconFilePath
+function Start-ExcelWorkbook {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][bool]$ReadOnly
+    )
+
+    $excelApplication = $null
+    $workbook = $null
+
+    try {
+        $excelApplication = New-Object -ComObject Excel.Application
+        $excelApplication.DisplayAlerts = $false
+        $excelApplication.Visible = $true
+
+        # UpdateLinks = 0, ReadOnly = $ReadOnly
+        $workbook = $excelApplication.Workbooks.Open($FilePath, 0, $ReadOnly)
+
+        return
+    }
+    finally {
+        if ($null -ne $workbook) {
+            [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($workbook)
+        }
+        if ($null -ne $excelApplication) {
+            [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excelApplication)
+        }
+        return
+    }
+}
 
 function Start-Tool {
     param([Parameter(Mandatory = $true)]$ToolViewModel)
 
-    $pathValue = [Environment]::ExpandEnvironmentVariables(
-        (Get-PropertyString -Object $ToolViewModel -PropertyName "Path" -DefaultValue "")
-    )
-    $argumentsValue = Get-PropertyString -Object $ToolViewModel -PropertyName "Args" -DefaultValue ""
-    $workingDirectoryValue = [Environment]::ExpandEnvironmentVariables(
-        (Get-PropertyString -Object $ToolViewModel -PropertyName "WorkingDirectory" -DefaultValue "")
-    )
-    $runAsAdministrator = Get-PropertyBoolean -Object $ToolViewModel -PropertyName "RunAsAdmin" -DefaultValue $false
+    $rawPathValue = Get-PropertyString -Object $ToolViewModel -PropertyName "Path" -DefaultValue ""
+    $pathValue = Resolve-ToolPath -PathValue ([Environment]::ExpandEnvironmentVariables($rawPathValue))
+
+    $defaultApp = (Get-PropertyString -Object $ToolViewModel -PropertyName "DefaultApp" -DefaultValue "").ToLowerInvariant()
+    $readOnly = (Get-PropertyBoolean -Object $ToolViewModel -PropertyName "ReadOnly" -DefaultValue $false)
 
     if ($pathValue -match '^(https?://)') {
+        if ($defaultApp -eq "chrome") {
+            Start-Process -FilePath "chrome.exe" -ArgumentList @("--new-window", $pathValue)
+            return
+        }
+        if ($defaultApp -eq "edge") {
+            Start-Process -FilePath "msedge.exe" -ArgumentList @("--new-window", $pathValue)
+            return
+        }
+
         Start-Process $pathValue
         return
     }
+    
+    if ($defaultApp -eq "excel") {
+        Start-ExcelWorkbook -FilePath $pathValue -ReadOnly $readOnly
+        return
+    }
 
-    $startProcessParameters = @{ FilePath = $pathValue }
-    if (![string]::IsNullOrWhiteSpace($argumentsValue)) { $startProcessParameters.ArgumentList = $argumentsValue }
-    if (![string]::IsNullOrWhiteSpace($workingDirectoryValue)) { $startProcessParameters.WorkingDirectory = $workingDirectoryValue }
+    if ($defaultApp -eq "word" -or $defaultApp -eq "powerpoint") {
+        $applicationExecutablePath = ""
+        if ($defaultApp -eq "word") { $applicationExecutablePath = "winword.exe" }
+        if ($defaultApp -eq "powerpoint") { $applicationExecutablePath = "powerpnt.exe" }
 
-    if ($runAsAdministrator) { Start-Process @startProcessParameters -Verb RunAs }
-    else { Start-Process @startProcessParameters }
+        $argumentList = @()
+        if ($readOnly) { $argumentList += "/r" }
+        $argumentList += $pathValue
 
-    return
+        Start-Process -FilePath $applicationExecutablePath -ArgumentList $argumentList
+        return
+    }
 }
 
 function New-ToolViewModel {
@@ -173,11 +198,10 @@ function New-ToolViewModel {
         Id                    = Get-PropertyString -Object $ToolDefinition -PropertyName "Id" -DefaultValue ""
         Name                  = Get-PropertyString -Object $ToolDefinition -PropertyName "Name" -DefaultValue ""
         Path                  = Get-PropertyString -Object $ToolDefinition -PropertyName "Path" -DefaultValue ""
-        Args                  = Get-PropertyString -Object $ToolDefinition -PropertyName "Args" -DefaultValue ""
-        WorkingDirectory      = Get-PropertyString -Object $ToolDefinition -PropertyName "WorkingDirectory" -DefaultValue ""
-        RunAsAdmin            = Get-PropertyBoolean -Object $ToolDefinition -PropertyName "RunAsAdmin" -DefaultValue $false
-        IconImageSource       = (Resolve-IconUriForTool -ToolDefinition $ToolDefinition)
-        OpenInNewIconSource   = $openInNewIconUri
+        DefaultApp            = Get-PropertyString -Object $ToolDefinition -PropertyName "DefaultApp" -DefaultValue ""
+        ReadOnly              = Get-PropertyBoolean -Object $ToolDefinition -PropertyName "ReadOnly" -DefaultValue $false
+        IconImageSource       = (Resolve-ImagePathForTool -ToolDefinition $ToolDefinition)
+        OpenInNewIconSource   = $openInNewIconFilePath
         CanAddToSelectedSkill = $CanAddToSelectedSkill
     }
 }
@@ -188,8 +212,8 @@ $xmlReader = [System.Xml.XmlReader]::Create($stringReader)
 $mainWindow = [Windows.Markup.XamlReader]::Load($xmlReader)
 
 $mainWindow.DataContext = [pscustomobject]@{
-    SearchIconSource = $searchIconUri
-    CloseIconSource  = $closeIconUri
+    SearchIconSource = $searchIconFilePath
+    CloseIconSource  = $closeIconFilePath
 }
 
 $skillComboBox = $mainWindow.FindName("skillComboBox")

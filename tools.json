@@ -4,19 +4,33 @@
       "Id": "gmail",
       "Name": "Gmail",
       "Path": "https://mail.google.com/",
-      "IconPath": "img\\chrome.png"
+      "Image": "img\\chrome.png",
+      "DefaultApp": "chrome",
+      "ReadOnly": false
     },
     {
       "Id": "notepad",
       "Name": "メモ帳",
       "Path": "notepad.exe",
-      "IconPath": "img\\notepad.png"
+      "Image": "img\\notepad.png",
+      "DefaultApp": "",
+      "ReadOnly": false
     },
     {
       "Id": "calc",
       "Name": "電卓",
       "Path": "calc.exe",
-      "IconPath": "img\\calc.png"
+      "Image": "img\\calc.png",
+      "DefaultApp": "",
+      "ReadOnly": false
+    },
+    {
+      "Id": "dailyFile",
+      "Name": "日時ファイル",
+      "Path": "data\\日時ファイル.xlsx",
+      "Image": "img\\excel.png",
+      "DefaultApp": "excel",
+      "ReadOnly": true
     }
   ]
 }

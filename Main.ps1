@@ -7,6 +7,8 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 $applicationRootDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $mainWindowXamlFilePath = Join-Path $applicationRootDirectory "MainWindow.xaml"
+$completionDialogXamlFilePath = Join-Path $applicationRootDirectory "CompletionDialog.xaml"
+
 $toolsConfigurationFilePath = Join-Path $applicationRootDirectory "tools.json"
 $skillsConfigurationFilePath = Join-Path $applicationRootDirectory "skills.json"
 
@@ -101,19 +103,11 @@ function Resolve-ToolPath {
     if ([string]::IsNullOrWhiteSpace($PathValue)) { return $PathValue }
     if ($PathValue -match '^(https?://)') { return $PathValue }
     if ([System.IO.Path]::IsPathRooted($PathValue)) { return $PathValue }
+
+    # "calc.exe" 等は PATH 解決に任せる（ルート結合しない）
+    if ($PathValue -notmatch '[\\/]' ) { return $PathValue }
+
     return (Join-Path $applicationRootDirectory $PathValue)
-}
-
-$toolsConfiguration = Read-JsonFile -FilePath $toolsConfigurationFilePath
-$skillsConfiguration = Read-JsonFile -FilePath $skillsConfigurationFilePath
-if ($null -eq $toolsConfiguration -or $null -eq $skillsConfiguration) {
-    throw "tools.json / skills.json の読み込みに失敗しました。"
-}
-
-$toolDefinitionById = @{}
-foreach ($toolDefinition in @($toolsConfiguration.Tools)) {
-    $toolId = Get-PropertyString -Object $toolDefinition -PropertyName "Id" -DefaultValue ""
-    if (![string]::IsNullOrWhiteSpace($toolId)) { $toolDefinitionById[$toolId] = $toolDefinition }
 }
 
 function Start-ExcelWorkbook {
@@ -138,11 +132,14 @@ function Start-ExcelWorkbook {
     finally {
         if ($null -ne $workbook) {
             [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($workbook)
+            $workbook = $null
         }
         if ($null -ne $excelApplication) {
             [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excelApplication)
+            $excelApplication = $null
         }
-        return
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
     }
 }
 
@@ -150,7 +147,8 @@ function Start-Tool {
     param([Parameter(Mandatory = $true)]$ToolViewModel)
 
     $rawPathValue = Get-PropertyString -Object $ToolViewModel -PropertyName "Path" -DefaultValue ""
-    $pathValue = Resolve-ToolPath -PathValue ([Environment]::ExpandEnvironmentVariables($rawPathValue))
+    $expandedPathValue = [Environment]::ExpandEnvironmentVariables($rawPathValue)
+    $pathValue = Resolve-ToolPath -PathValue $expandedPathValue
 
     $defaultApp = (Get-PropertyString -Object $ToolViewModel -PropertyName "DefaultApp" -DefaultValue "").ToLowerInvariant()
     $readOnly = (Get-PropertyBoolean -Object $ToolViewModel -PropertyName "ReadOnly" -DefaultValue $false)
@@ -168,7 +166,7 @@ function Start-Tool {
         Start-Process $pathValue
         return
     }
-    
+
     if ($defaultApp -eq "excel") {
         Start-ExcelWorkbook -FilePath $pathValue -ReadOnly $readOnly
         return
@@ -186,6 +184,9 @@ function Start-Tool {
         Start-Process -FilePath $applicationExecutablePath -ArgumentList $argumentList
         return
     }
+
+    Start-Process -FilePath $pathValue
+    return
 }
 
 function New-ToolViewModel {
@@ -204,6 +205,40 @@ function New-ToolViewModel {
         OpenInNewIconSource   = $openInNewIconFilePath
         CanAddToSelectedSkill = $CanAddToSelectedSkill
     }
+}
+
+function Show-CompletionDialog {
+    $xamlContent = Get-Content -LiteralPath $completionDialogXamlFilePath -Raw -Encoding UTF8
+    $stringReader = New-Object System.IO.StringReader($xamlContent)
+    $xmlReader = [System.Xml.XmlReader]::Create($stringReader)
+    $dialogWindow = [Windows.Markup.XamlReader]::Load($xmlReader)
+
+    # 最前面・中央（要件）
+    $dialogWindow.Topmost = $true
+    $dialogWindow.WindowStartupLocation = "CenterScreen"
+
+    $okButton = $dialogWindow.FindName("okButton")
+    if ($null -ne $okButton) {
+        $okButton.Add_Click({
+                $dialogWindow.Close()
+                return
+            })
+    }
+
+    $null = $dialogWindow.ShowDialog()
+    return
+}
+
+$toolsConfiguration = Read-JsonFile -FilePath $toolsConfigurationFilePath
+$skillsConfiguration = Read-JsonFile -FilePath $skillsConfigurationFilePath
+if ($null -eq $toolsConfiguration -or $null -eq $skillsConfiguration) {
+    throw "tools.json / skills.json の読み込みに失敗しました。"
+}
+
+$toolDefinitionById = @{}
+foreach ($toolDefinition in @($toolsConfiguration.Tools)) {
+    $toolId = Get-PropertyString -Object $toolDefinition -PropertyName "Id" -DefaultValue ""
+    if (![string]::IsNullOrWhiteSpace($toolId)) { $toolDefinitionById[$toolId] = $toolDefinition }
 }
 
 $xamlContent = Get-Content -LiteralPath $mainWindowXamlFilePath -Raw -Encoding UTF8
@@ -426,10 +461,22 @@ $skillApplicationListBox.AddHandler(
 
 $bulkLaunchButton.Add_Click({
         if ($skillApplicationViewModels.Count -le 0) { return }
+
         foreach ($toolViewModel in @($skillApplicationViewModels)) {
             Start-Tool -ToolViewModel $toolViewModel
             Start-Sleep -Milliseconds 150
         }
+
+        # AppLauncher を閉じてからモーダル
+        $mainWindow.Close()
+
+        # 画面描画の競合を避ける
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
+            [Action] {},
+            [System.Windows.Threading.DispatcherPriority]::Background
+        )
+
+        Show-CompletionDialog
         return
     })
 

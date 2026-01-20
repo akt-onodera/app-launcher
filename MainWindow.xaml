@@ -38,6 +38,54 @@
             Opacity="0.22"
             ShadowDepth="2" />
 
+        <!--  MD3: ScrollBar（簡易・実用）  -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Margin="0,2" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton
+                                        Command="ScrollBar.LineUpCommand"
+                                        IsHitTestVisible="False"
+                                        Opacity="0" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb" MinHeight="34">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border
+                                                    Background="{StaticResource OutlineBrush}"
+                                                    CornerRadius="6"
+                                                    Opacity="0.35" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton
+                                        Command="ScrollBar.LineDownCommand"
+                                        IsHitTestVisible="False"
+                                        Opacity="0" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Thumb" Property="Opacity" Value="0.85" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Thumb" Property="Opacity" Value="0.25" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="TitleLargeTextBlock" TargetType="TextBlock">
             <Setter Property="FontSize" Value="22" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -458,6 +506,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
+            <!--  左: アプリ一覧  -->
             <Border Grid.Column="0" Style="{StaticResource CardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -468,11 +517,18 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
+                    <!--  追加: 左上にラベル  -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="{StaticResource OnSurfaceBrush}"
+                            Text="アプリ一覧" />
+
                         <TextBlock
                             x:Name="applicationCountTextBlock"
                             Grid.Column="1"
@@ -611,6 +667,7 @@
                 </Grid>
             </Border>
 
+            <!--  右: 起動するアプリ  -->
             <Border Grid.Column="2" Style="{StaticResource CardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
